@@ -4,6 +4,7 @@ import "./globals.css";
 import { AuthProvider } from "../context/AuthContext";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { Toaster } from "react-hot-toast";
+import { ChatProvider } from "../context/ChatContext";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -27,7 +28,7 @@ export default function RootLayout({
           clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!}
         >
           <AuthProvider>
-            {children}
+            <ChatProvider>{children}</ChatProvider>
             <Toaster position="top-center" />
           </AuthProvider>
         </GoogleOAuthProvider>{" "}

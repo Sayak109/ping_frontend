@@ -5,7 +5,6 @@ import AuthLayout from "../components/AuthLayout";
 import { Header } from "../components/Header";
 import { Sidebar } from "../components/Sidebar";
 import { ChatArea } from "../components/ChatArea";
-import { Toaster } from "react-hot-toast";
 
 export default function Home() {
   const [selectedContact, setSelectedContact] = useState<string | null>(null);
@@ -21,13 +20,8 @@ export default function Home() {
                 searchQuery={searchQuery}
                 setSearchQuery={setSearchQuery}
               />
-              <Sidebar
-                selectedContact={selectedContact}
-                setSelectedContact={setSelectedContact}
-                searchQuery={searchQuery}
-              />
+              <Sidebar searchQuery={searchQuery} />
             </div>
-
             <div className="flex-1 bg-gray-800/20 backdrop-blur-sm">
               <ChatArea selectedContact={selectedContact} />
             </div>

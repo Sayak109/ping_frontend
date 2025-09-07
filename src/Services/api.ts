@@ -1,8 +1,12 @@
-import axios, { AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from "axios";
+import axios, {
+  AxiosInstance,
+  AxiosResponse,
+  InternalAxiosRequestConfig,
+} from "axios";
 
 const API_BASE_URL: string =
-  process.env.REACT_APP_API_URL || "http://localhost:3333";
-const API_SLUG: string = process.env.REACT_APP_API_SLUG || "/api/v1";
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:3333";
+const API_SLUG: string = process.env.NEXT_PUBLIC_API_SLUG || "/api/v1";
 
 const api: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
@@ -26,17 +30,14 @@ api.interceptors.response.use(
   (response: AxiosResponse) => response,
   (error) => {
     const status = error.response?.status;
-    
-    // Handle authentication errors (401, 402)
+
     if (status === 401 || status === 402) {
-      // Check if we're not already on sign-in page to prevent loops
       const currentPath = window.location.pathname;
-      if (currentPath !== '/sign-in' && currentPath !== '/signin') {
-        console.log('Authentication error detected, redirecting to sign-in page');
-        window.location.href = '/sign-in';
+      if (currentPath !== "/sign-in") {
+        window.location.href = "/sign-in";
       }
     }
-    
+
     return Promise.reject(error);
   }
 );
@@ -64,29 +65,47 @@ export const testAPI = {
 // Auth API endpoints
 export const authAPI = {
   login: (credentials: LoginCredentials): Promise<AxiosResponse> =>
-    api.post(`${API_SLUG}/signin`, credentials),
+    api.post(`${API_SLUG}/auth/signin`, credentials),
 
   register: (userData: RegisterData): Promise<AxiosResponse> =>
-    api.post(`${API_SLUG}/signup`, userData),
+    api.post(`${API_SLUG}/auth/signup`, userData),
 
-  logout: (): Promise<AxiosResponse> => api.post(`${API_SLUG}/logout`),
-
-  getUser: (): Promise<AxiosResponse> => api.get(`${API_SLUG}/user/me`),
+  logout: (): Promise<AxiosResponse> => api.post(`${API_SLUG}/auth/logout`),
 
   googleLogin: (credential: string): Promise<AxiosResponse> =>
-    api.post(`${API_SLUG}/google`, credential),
+    api.post(`${API_SLUG}/auth/google`, credential),
 };
 
-// URL API endpoints
-export const urlAPI = {
-  getUrlList: (): Promise<AxiosResponse> =>
-    api.get(`${API_SLUG}/url/url-list`),
+// User API endpoints
+export const userAPI = {
+  getUser: (): Promise<AxiosResponse> => api.get(`${API_SLUG}/user/me`),
 
-  shortenUrl: (longUrl: string): Promise<AxiosResponse> =>
-    api.post(`${API_SLUG}/url/shorten-url`, { long_url: longUrl }),
+  searchUsers: (): Promise<AxiosResponse> => api.get(`${API_SLUG}/user/search`),
+};
 
-  deleteUrl: (urlId: string): Promise<AxiosResponse> =>
-    api.delete(`${API_SLUG}/url/${urlId}`),
+// Chat API endpoints
+
+export const chatAPI = {
+  getChats: (): Promise<AxiosResponse> => api.get(`${API_SLUG}/chats`),
+
+  getMessages: (id: string): Promise<AxiosResponse> =>
+    api.get(`${API_SLUG}/chats/messages/${id}`),
+
+  sendMessage: (
+    id: string,
+    data: { text?: string; image?: File }
+  ): Promise<AxiosResponse> => {
+    const formData = new FormData();
+    if (data.text) formData.append("text", data.text);
+    if (data.image) formData.append("image", data.image);
+
+    return api.post(`${API_SLUG}/chats/send-message/${id}`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
+
+  seenMessage: (id: string): Promise<AxiosResponse> =>
+    api.post(`${API_SLUG}/chats/message-seen/${id}`),
 };
 
 export default api;

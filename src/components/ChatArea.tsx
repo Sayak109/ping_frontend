@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Video,
   Phone,
@@ -14,6 +14,9 @@ import {
   Earth,
 } from "lucide-react";
 import Image from "next/image";
+import { useAuth } from "../context/AuthContext";
+import { useChat } from "../context/ChatContext";
+import { formatMessageTime, formatTime } from "../lib/common";
 
 interface ChatAreaProps {
   selectedContact: string | null;
@@ -21,8 +24,31 @@ interface ChatAreaProps {
 
 export function ChatArea({ selectedContact }: ChatAreaProps) {
   const [message, setMessage] = useState("");
+  const { user, onlineUsers } = useAuth();
+  const {
+    sidebarUsers,
+    setUnseenMessages,
+    setSelectedUser,
+    selectedUser,
+    getSidebarUsers,
+    unseenMessages,
+    getMessages,
+    sendMessages,
+    messages,
+  } = useChat();
+  console.log("selectedUser", selectedUser);
+  console.log("getMessages", getMessages);
+  console.log("onlineUsers", onlineUsers);
+  console.log("setUnseenMessages", setUnseenMessages[selectedUser?._id]);
 
-  if (!selectedContact) {
+  useEffect(() => {
+    if (selectedUser) {
+      getMessages(selectedUser?._id);
+      setUnseenMessages();
+    }
+  }, [selectedUser]);
+
+  if (!selectedUser) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center px-6">
@@ -41,37 +67,9 @@ export function ChatArea({ selectedContact }: ChatAreaProps) {
     );
   }
 
-  const contact = { name: "Contact", lastSeen: "last seen today at 10:30 AM" };
-  const messages = [
-    {
-      id: "1",
-      text: "Hey there! How are you doing?",
-      sender: "them",
-      time: "10:30 AM",
-    },
-    {
-      id: "2",
-      text: "I'm doing great, thanks for asking! How about you?",
-      sender: "me",
-      time: "10:32 AM",
-    },
-    {
-      id: "3",
-      text: "Same here! Want to grab coffee later?",
-      sender: "them",
-      time: "10:35 AM",
-    },
-    {
-      id: "4",
-      text: "That sounds perfect! See you at 3 PM?",
-      sender: "me",
-      time: "10:37 AM",
-    },
-  ];
-
   const handleSendMessage = () => {
     if (message.trim()) {
-      // Add message logic here
+      sendMessages({ text: message });
       setMessage("");
     }
   };
@@ -90,8 +88,14 @@ export function ChatArea({ selectedContact }: ChatAreaProps) {
             />
           </div>
           <div>
-            <h2 className="text-white font-medium">{contact.name}</h2>
-            <p className="text-xs text-gray-400">{contact.lastSeen}</p>
+            <h2 className="text-white font-medium">{selectedUser.name}</h2>
+            <p className="text-xs">
+              {onlineUsers.includes(selectedUser._id) ? (
+                <span className="text-green-400">Online</span>
+              ) : (
+                <span className="text-gray-400">Offline</span>
+              )}
+            </p>{" "}
           </div>
         </div>
         <div className="flex items-center space-x-2">
@@ -128,31 +132,55 @@ export function ChatArea({ selectedContact }: ChatAreaProps) {
             opacity: 0.3,
           }}
         ></div>
-        {messages.map((msg) => (
-          <div
-            key={msg.id}
-            className={`flex ${
-              msg.sender === "me" ? "justify-end" : "justify-start"
-            }`}
-          >
+        {messages.map((msg, index) => {
+          const isMine = msg.receiver_id === selectedUser._id;
+
+          return (
             <div
-              className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl ${
-                msg.sender === "me"
-                  ? "bg-green-600 text-white rounded-br-md"
-                  : "bg-gray-700/80 text-white rounded-bl-md"
-              } shadow-lg backdrop-blur-sm border border-gray-600/30`}
+              key={index}
+              className={`flex ${
+                isMine ? "justify-end" : "justify-start"
+              } mb-2`}
             >
-              <p className="text-sm leading-relaxed">{msg.text}</p>
-              <p
-                className={`text-xs mt-1 ${
-                  msg.sender === "me" ? "text-green-100" : "text-gray-400"
-                }`}
+              <div
+                className={`relative max-w-xs lg:max-w-md px-3 py-2 rounded-xl ${
+                  isMine
+                    ? "bg-green-500 text-white rounded-br-md"
+                    : "bg-gray-700/80 text-white rounded-bl-md"
+                } shadow-md`}
               >
-                {msg.time}
-              </p>
+                <div className="flex items-end space-x-2">
+                  {msg.text && (
+                    <p className="text-sm leading-relaxed">{msg.text}</p>
+                  )}
+
+                  <div className="flex items-center space-x-1">
+                    <span className="text-[9px] text-gray-200/80">
+                      {formatMessageTime(msg.createdAt)}
+                    </span>
+                    {isMine && (
+                      <span
+                        className={`text-[10px] ${
+                          msg.seen ? "text-blue-600" : "text-gray-300"
+                        }`}
+                      >
+                        {msg.seen ? "✓✓" : "✓"}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div
+                  className={`absolute bottom-0 w-0 h-0 border-t-8 border-transparent ${
+                    isMine
+                      ? "right-0 border-l-8 border-l-green-500"
+                      : "left-0 border-r-8 border-r-gray-700/80"
+                  }`}
+                ></div>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="p-1 !bg-gray-800/10">

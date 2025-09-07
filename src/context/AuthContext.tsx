@@ -8,8 +8,9 @@ import React, {
   ReactNode,
 } from "react";
 import toast from "react-hot-toast";
-import { authAPI } from "../Services/api";
+import { authAPI, userAPI } from "../Services/api";
 import { useRouter, usePathname } from "next/navigation";
+import { io } from "socket.io-client";
 
 interface User {
   id: string;
@@ -21,6 +22,8 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   loading: boolean;
+  socket;
+  onlineUsers;
   login: (
     email: string,
     password: string
@@ -55,6 +58,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [onlineUsers, setOnlineUsers] = useState([]);
+  const [socket, setSocket] = useState(null);
   const router = useRouter();
   const pathname = usePathname();
 
@@ -71,11 +76,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const checkAuthStatus = async () => {
     try {
-      const response = await authAPI.getUser();
+      const response = await userAPI.getUser();
 
       if (response.data && response.data.code === 200) {
         setUser(response.data.data as User);
         setIsAuthenticated(true);
+        connectSocket(response.data.data as User);
       } else {
         setUser(null);
         setIsAuthenticated(false);
@@ -87,6 +93,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const connectSocket = (userData: any) => {
+    if (!userData || socket?.connected) return;
+    const newSocket = io(process.env.NEXT_PUBLIC_API_URL as string, {
+      query: { user_id: userData._id },
+    });
+    newSocket.connect();
+    setSocket(newSocket);
+    newSocket.on("getOnlineUsers", (user_ids: string[]) => {
+      setOnlineUsers(user_ids);
+    });
   };
 
   useEffect(() => {
@@ -103,6 +121,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (response.data.code === 200) {
         setUser(response.data.data as User);
         setIsAuthenticated(true);
+        connectSocket(response.data.data as User);
         toast.success("Login successful!");
         return { success: true };
       } else {
@@ -127,6 +146,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (response.data.code === 200) {
         setUser(response.data.data as User);
         setIsAuthenticated(true);
+        connectSocket(response.data.data as User);
         toast.success("Registration successful! Please login.");
         return { success: true };
       } else {
@@ -179,6 +199,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     user,
     isAuthenticated,
     loading,
+    onlineUsers,
+    socket,
     login,
     register,
     googleLogin,
