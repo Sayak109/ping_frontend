@@ -26,21 +26,21 @@ api.interceptors.request.use(
 );
 
 // Global response interceptor to handle authentication errors
-// api.interceptors.response.use(
-//   (response: AxiosResponse) => response,
-//   (error) => {
-//     const status = error.response?.status;
+api.interceptors.response.use(
+  (response: AxiosResponse) => response,
+  (error) => {
+    const status = error.response?.status;
 
-//     if (status === 401 || status === 402) {
-//       const currentPath = window.location.pathname;
-//       if (currentPath !== "/sign-in") {
-//         window.location.href = "/sign-in";
-//       }
-//     }
+    if (status === 401 || status === 402) {
+      const currentPath = window.location.pathname;
+      if (currentPath !== "/sign-in") {
+        window.location.href = "/sign-in";
+      }
+    }
 
-//     return Promise.reject(error);
-//   }
-// );
+    return Promise.reject(error);
+  }
+);
 
 interface LoginCredentials {
   email: string;
